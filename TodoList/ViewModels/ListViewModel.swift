@@ -19,19 +19,33 @@ import Foundation
 // 將 ListViewModel 變成 environment variable, 將 view Model 型別改成 ObservableObject
 class ListViewModel: ObservableObject {
     
-    @Published var items: [ItemModel] = []
+    @Published var items: [ItemModel] = [] {
+        // anytime we change items array, this function will call
+        didSet {
+            saveItems()
+        }
+    }
+    let itemsKey: String = "items_list"
     
     init() {
         getItems()
     }
     
     func getItems() {
-        let newItem = [
-            ItemModel(title: "This is fisrt model", isCompleted: false),
-            ItemModel(title: "This is second model", isCompleted: true),
-            ItemModel(title: "This is third model", isCompleted: false),
-        ]
-        items.append(contentsOf: newItem)
+//        let newItem = [
+//            ItemModel(title: "This is fisrt model", isCompleted: false),
+//            ItemModel(title: "This is second model", isCompleted: true),
+//            ItemModel(title: "This is third model", isCompleted: false),
+//        ]
+//        items.append(contentsOf: newItem)
+        
+        guard
+            let data = UserDefaults.standard.data(forKey: itemsKey),
+            // [ItemModel].self : .self is for ItemModel, not array itself
+            let savedItems = try? JSONDecoder().decode([ItemModel].self, from: data)
+        else { return }
+        
+        self.items = savedItems
     }
     
     func deleteItem(indexSet: IndexSet) {
@@ -55,6 +69,12 @@ class ListViewModel: ObservableObject {
 //        }
         if let index = items.firstIndex(where: {$0.id == item.id}) {
             items[index] = item.updateCompletion()
+        }
+    }
+    
+    func saveItems() {
+        if let encodedData = try? JSONEncoder().encode(items) {
+            UserDefaults.standard.set(encodedData, forKey: itemsKey)
         }
     }
 }
